@@ -15,22 +15,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let menu = NSMenu()
     var originalAlertVolume: Float32 = 1
     var isSilentMode = false
-    // let audioManager = AudioManager()
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // Insert code here to initialize your application
-        setOriginalAlertVolume()
+        captureOriginalAlertVolume()
         updateIcon()
         setupMenu()
     }
     
-    func setOriginalAlertVolume() {
+    func captureOriginalAlertVolume() {
         var volume: Float32 = 0
         let status = SSVLGetSystemVolume(&volume)
         // Set original volume to volume variable, otherwise keep it at the default of 1
         if status == noErr {
-            print("Original alert volume is: \(volume)")
-            originalAlertVolume = volume
+            if volume != 0 {
+                print("Original alert volume is: \(volume)")
+                originalAlertVolume = volume
+            } else {
+                print("Already muted")
+                isSilentMode = true // Make icon muted by default if alert volume is initially muted
+            }
         }
     }
     
@@ -92,6 +96,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ aNotification: Notification) {
         // Insert code here to tear down your application
+        // Restore original alert volume
+        if isSilentMode {
+            let status = SSVLSetSystemVolume(originalAlertVolume)
+            if status == noErr {
+                print("Restored alert volume before exiting")
+            }
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
